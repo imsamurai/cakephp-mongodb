@@ -18,10 +18,10 @@
  * Licensed under The MIT License
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright 2010, Yasushi Ichikawa http://github.com/ichikaway/
- * @package       mongodb
- * @subpackage    mongodb.models.datasources
- * @license       http://www.opensource.org/licenses/mit-license.php The MIT License
+ * @copyright	 Copyright 2010, Yasushi Ichikawa http://github.com/ichikaway/
+ * @package	   mongodb
+ * @subpackage	mongodb.models.datasources
+ * @license	   http://www.opensource.org/licenses/mit-license.php The MIT License
  */
 
 App::import('Datasource', 'DboSource');
@@ -29,8 +29,8 @@ App::import('Datasource', 'DboSource');
 /**
  * MongoDB Source
  *
- * @package       mongodb
- * @subpackage    mongodb.models.datasources
+ * @package	   mongodb
+ * @subpackage	mongodb.models.datasources
  */
 class MongodbSource extends DboSource {
 
@@ -74,10 +74,10 @@ class MongodbSource extends DboSource {
 
 /**
  * Base Config
- * 
+ *
  * set_string_id:
- *    true: In read() method, convert MongoId object to string and set it to array 'id'.
- *    false: not convert and set.
+ *	true: In read() method, convert MongoId object to string and set it to array 'id'.
+ *	false: not convert and set.
  *
  * @var array
  * @access public
@@ -86,9 +86,9 @@ class MongodbSource extends DboSource {
 	public $_baseConfig = array(
 		'set_string_id' => true,
 		'persistent' => true,
-		'host'       => 'localhost',
+		'host'	   => 'localhost',
 		'database'   => '',
-		'port'       => '27017',
+		'port'	   => '27017',
 		'login'		=> '',
 		'password'	=> '',
 		'replicaset'	=> '',
@@ -180,6 +180,8 @@ class MongodbSource extends DboSource {
 
 			if (isset($this->config['replicaset']) && count($this->config['replicaset']) === 2) {
 				$this->connection = new Mongo($this->config['replicaset']['host'], $this->config['replicaset']['options']);
+			} else if ($this->_driverVersion >= '1.3.0') {
+				$this->connection = new Mongo($host);
 			} else if ($this->_driverVersion >= '1.2.0') {
 				$this->connection = new Mongo($host, array("persist" => $this->config['persistent']));
 			} else {
@@ -367,16 +369,16 @@ class MongodbSource extends DboSource {
 		if (!$this->isConnected()) {
 			return false;
 		}
-		
+
 		$collections = $this->_db->listCollections();
 		$sources = array();
-		
+
 		if(!empty($collections)){
 			foreach($collections as $collection){
 				$sources[] = $collection->getName();
 			}
 		}
-		
+
 		return $sources;
 	}
 
@@ -391,7 +393,7 @@ class MongodbSource extends DboSource {
  * @return array if model instance has mongoSchema, return it.
  * @access public
  */
-	public function describe(&$Model, $field = null) {
+	public function describe($Model) {
 		$Model->primaryKey = '_id';
 		$schema = array();
 		if (!empty($Model->mongoSchema) && is_array($Model->mongoSchema)) {
@@ -427,7 +429,7 @@ class MongodbSource extends DboSource {
  * @return array
  * @access public
  */
-	public function calculate(&$Model) {
+	public function calculate(Model $Model, $func, $params = array()) {
 		return array('count' => true);
 	}
 
@@ -452,7 +454,7 @@ class MongodbSource extends DboSource {
  * @return boolean Insert result
  * @access public
  */
-	public function create(&$Model, $fields = null, $values = null) {
+	public function create(Model $Model, $fields = null, $values = null) {
 		if (!$this->isConnected()) {
 			return false;
 		}
@@ -468,9 +470,15 @@ class MongodbSource extends DboSource {
 
 		$this->_prepareLogQuery($Model); // just sets a timer
 		try{
-			$return = $this->_db
-				->selectCollection($Model->table)
-				->insert($data, true);
+			if ($this->_driverVersion >= '1.3.0') {
+				$return = $this->_db
+					->selectCollection($Model->table)
+					->insert($data, array('safe' => true));
+			} else {
+				$return = $this->_db
+					->selectCollection($Model->table)
+					->insert($data, true);
+			}
 		} catch (MongoException $e) {
 			$this->error = $e->getMessage();
 			trigger_error($this->error);
@@ -516,7 +524,7 @@ class MongodbSource extends DboSource {
  * @return void
  * @access public
  */
-	public function dropSchema($schema, $tableName = null) {
+	public function dropSchema(CakeSchema $schema, $tableName = null) {
 		if (!$this->isConnected()) {
 			return false;
 		}
@@ -584,24 +592,24 @@ class MongodbSource extends DboSource {
 /**
  * group method
  *
- * @param mixed $Model
  * @param array $params array()
  *   Set params  same as MongoCollection::group()
- *    key,initial, reduce, options(conditions, finalize)
+ *	key,initial, reduce, options(conditions, finalize)
  *
  *   Ex. $params = array(
- *           'key' => array('field' => true),
- *           'initial' => array('csum' => 0),
- *           'reduce' => 'function(obj, prev){prev.csum += 1;}',
- *           'options' => array(
- *                'condition' => array('age' => array('$gt' => 20)),
- *                'finalize' => array(),
- *           ),
- *       );
+ *		   'key' => array('field' => true),
+ *		   'initial' => array('csum' => 0),
+ *		   'reduce' => 'function(obj, prev){prev.csum += 1;}',
+ *		   'options' => array(
+ *				'condition' => array('age' => array('$gt' => 20)),
+ *				'finalize' => array(),
+ *		   ),
+ *	   );
+ * @param mixed $Model
  * @return void
  * @access public
  */
-	public function group(&$Model, $params = array()) {
+	public function group($params, $Model = null) {
 
 		if (!$this->isConnected() || count($params) === 0 ) {
 			return false;
@@ -669,12 +677,12 @@ class MongodbSource extends DboSource {
  * If you don't want to use $set operator, you can chose any one as follw.
  *  1. Set TRUE in Model::mongoNoSetOperator property.
  *  2. Set a mongodb operator in a key of save data as follow.
- *      Model->save(array('_id' => $id, '$inc' => array('count' => 1)));
- *      Don't use Model::mongoSchema property,
- *       CakePHP delete '$inc' data in Model::Save().
+ *	  Model->save(array('_id' => $id, '$inc' => array('count' => 1)));
+ *	  Don't use Model::mongoSchema property,
+ *	   CakePHP delete '$inc' data in Model::Save().
  *  3. Set a Mongo operator in Model::mongoNoSetOperator property.
- *      Model->mongoNoSetOperator = '$inc';
- *      Model->save(array('_id' => $id, array('count' => 1)));
+ *	  Model->mongoNoSetOperator = '$inc';
+ *	  Model->save(array('_id' => $id, array('count' => 1)));
  *
  * @param Model $Model Model Instance
  * @param array $fields Field data
@@ -682,8 +690,7 @@ class MongodbSource extends DboSource {
  * @return boolean Update result
  * @access public
  */
-	public function update(&$Model, $fields = null, $values = null, $conditions = null) {
-
+	public function update(Model $Model, $fields = null, $values = null, $conditions = null) {
 		if (!$this->isConnected()) {
 			return false;
 		}
@@ -719,7 +726,11 @@ class MongodbSource extends DboSource {
 			$data = $this->setMongoUpdateOperator($Model, $data);
 
 			try{
-				$return = $mongoCollectionObj->update($cond, $data, array("multiple" => false));
+				if ($this->_driverVersion >= '1.3.0') {
+		        	$return = $mongoCollectionObj->update($cond, $data, array("multiple" => false, 'safe' => true));
+		        } else {
+		        	$return = $mongoCollectionObj->update($cond, $data, array("multiple" => false));
+		        }
 			} catch (MongoException $e) {
 				$this->error = $e->getMessage();
 				trigger_error($this->error);
@@ -731,7 +742,11 @@ class MongodbSource extends DboSource {
 			}
 		} else {
 			try{
-				$return = $mongoCollectionObj->save($data);
+				if ($this->_driverVersion >= '1.3.0') {
+					$return = $mongoCollectionObj->save($data, array('safe' => true));
+				} else {
+					$return = $mongoCollectionObj->save($data);
+				}
 			} catch (MongoException $e) {
 				$this->error = $e->getMessage();
 				trigger_error($this->error);
@@ -759,7 +774,7 @@ class MongodbSource extends DboSource {
 		if(isset($data['updated'])) {
 			$updateField = 'updated';
 		} else {
-			$updateField = 'modified';			
+			$updateField = 'modified';
 		}
 
 		//setting Mongo operator
@@ -808,9 +823,19 @@ class MongodbSource extends DboSource {
 
 		$this->_prepareLogQuery($Model); // just sets a timer
 		try{
-			$return = $this->_db
-				->selectCollection($Model->table)
-				->update($conditions, $fields, array("multiple" => true));
+			if ($this->_driverVersion >= '1.3.0') {
+				// not use 'upsert'
+				$return = $this->_db
+					->selectCollection($Model->table)
+					->update($conditions, $fields, array("multiple" => true, 'safe' => true));
+				if (isset($return['updatedExisting'])) {
+					$return = $return['updatedExisting'];
+				}
+			} else {
+				$return = $this->_db
+					->selectCollection($Model->table)
+					->update($conditions, $fields, array("multiple" => true));
+			}
 		} catch (MongoException $e) {
 			$this->error = $e->getMessage();
 			trigger_error($this->error);
@@ -879,7 +904,7 @@ class MongodbSource extends DboSource {
  * @return boolean Update result
  * @access public
  */
-	public function delete(&$Model, $conditions = null) {
+	public function delete(Model $Model, $conditions = null) {
 		if (!$this->isConnected()) {
 			return false;
 		}
@@ -933,10 +958,11 @@ class MongodbSource extends DboSource {
  *
  * @param Model $Model Model Instance
  * @param array $query Query data
+ * @param mixed  $recursive
  * @return array Results
  * @access public
  */
-	public function read(&$Model, $query = array()) {
+	public function read(Model $Model, $query = array(), $recursive = null) {
 		if (!$this->isConnected()) {
 			return false;
 		}
@@ -1095,7 +1121,14 @@ class MongodbSource extends DboSource {
  * @return void
  * @access public
  */
-	public function query($query, $params = array()) {
+	public function query() {
+		$args = func_get_args();
+		$query = $args[0];
+		$params = array();
+		if(count($args) > 1) {
+			$params = $args[1];
+		}
+		
 		if (!$this->isConnected()) {
 			return false;
 		}
@@ -1119,7 +1152,7 @@ class MongodbSource extends DboSource {
  *
  * @param mixed $query
  * @param integer $timeout (milli second)
- * @return mixed false or array 
+ * @return mixed false or array
  * @access public
  */
 	public function mapReduce($query, $timeout = null) {
@@ -1175,11 +1208,12 @@ class MongodbSource extends DboSource {
  * db-agnostic process which does not have a mongo equivalent, don't do anything.
  *
  * @param mixed $query
+ * @param array $options
  * @param array $params array()
  * @return void
  * @access public
  */
-	public function execute($query, $params = array()) {
+	public function execute($query, $options = array(), $params = array()) {
 		if (!$this->isConnected()) {
 			return false;
 		}
@@ -1248,20 +1282,20 @@ class MongodbSource extends DboSource {
 		$this->numRows = null;
 		return true;
 	}
-	
+
 /**
  * setTimeout Method
- * 
+ *
  * Sets the MongoCursor timeout so long queries (like map / reduce) can run at will.
  * Expressed in milliseconds, for an infinite timeout, set to -1
  *
- * @param int $ms 
+ * @param int $ms
  * @return boolean
  * @access public
  */
 	public function setTimeout($ms){
 		MongoCursor::$timeout = $ms;
-		
+
 		return true;
 	}
 
