@@ -1,6 +1,6 @@
 {
     "name": "radig/cakephp-mongodb",
-    "description": "MongoDB datasource for CakePHP forked from github.com/ichikaway/cakephp-mongodb by Yasushi Ichikawa (ichikaway) and Andy Dawson (AD7six)",
+    "description": "MongoDB datasource for CakePHP forked from github.com/ichikaway/cakephp-mongodb by Yasushi Ichikawa (ichikaway), Andy Dawson (AD7six)",
     "type": "cakephp-plugin",
     "license": "MIT",
     "keywords": ["cakephp-mongodb", "datasource", "mongodb", "database", "ichikaway", "cakephp", "radig"],
@@ -18,6 +18,10 @@
         "composer/installers": "~1.0"
     },
     "extra": {
-        "installer-name": "Mongodb"
+        "installer-name": "Mongodb",
+        "branch-alias": {
+            "dev-cake2.0": "2.0.x-dev",
+            "dev-cake2.2": "2.2.x-dev"
+        },
     }
 }
