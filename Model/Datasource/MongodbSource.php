@@ -1143,7 +1143,7 @@ class MongodbSource extends DboSource {
 			return false;
 		}
 
-		return $this->execute('db.' . $this->fullTableName($table) . '.remove();');
+		return $this->execute('db.' . $this->fullTableName($table) . '.remove({});');
 	}
 
 /**
