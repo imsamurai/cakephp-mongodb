@@ -189,13 +189,13 @@ class MongodbSource extends DboSource {
 			$host = $this->createConnectionName($this->config, $this->_driverVersion);
 
 			if (isset($this->config['replicaset']) && count($this->config['replicaset']) === 2) {
-				$this->connection = new Mongo($this->config['replicaset']['host'], $this->config['replicaset']['options']);
+				$this->connection = new MongoClient($this->config['replicaset']['host'], $this->config['replicaset']['options']);
 			} else if ($this->_driverVersion >= '1.3.0') {
-				$this->connection = new Mongo($host);
+				$this->connection = new MongoClient($host);
 			} else if ($this->_driverVersion >= '1.2.0') {
-				$this->connection = new Mongo($host, array("persist" => $this->config['persistent']));
+				$this->connection = new MongoClient($host, array("persist" => $this->config['persistent']));
 			} else {
-				$this->connection = new Mongo($host, true, $this->config['persistent']);
+				$this->connection = new MongoClient($host, true, $this->config['persistent']);
 			}
 
 			if (isset($this->config['slaveok'])) {
@@ -279,7 +279,7 @@ class MongodbSource extends DboSource {
 		try{
 			$return = $this->_db
 				->selectCollection($table)
-				->batchInsert($data, array('safe' => true));
+				->batchInsert($data, array('w' => true));
 		} catch (MongoException $e) {
 			$this->error = $e->getMessage();
 			trigger_error($this->error);
@@ -489,7 +489,7 @@ class MongodbSource extends DboSource {
 			if ($this->_driverVersion >= '1.3.0') {
 				$return = $this->_db
 					->selectCollection($Model->table)
-					->insert($data, array('safe' => true));
+					->insert($data, array('w' => true));
 			} else {
 				$return = $this->_db
 					->selectCollection($Model->table)
@@ -748,7 +748,7 @@ class MongodbSource extends DboSource {
 
 			try{
 				if ($this->_driverVersion >= '1.3.0') {
-					$return = $mongoCollectionObj->update($cond, $data, array("multiple" => false, 'safe' => true));
+					$return = $mongoCollectionObj->update($cond, $data, array("multiple" => false, 'w' => true));
 				} else {
 					$return = $mongoCollectionObj->update($cond, $data, array("multiple" => false));
 				}
@@ -848,7 +848,7 @@ class MongodbSource extends DboSource {
 				// not use 'upsert'
 				$return = $this->_db
 					->selectCollection($Model->table)
-					->update($conditions, $fields, array("multiple" => true, 'safe' => true));
+					->update($conditions, $fields, array("multiple" => true, 'w' => true));
 				if (isset($return['updatedExisting'])) {
 					$return = $return['updatedExisting'];
 				}
@@ -1102,8 +1102,7 @@ class MongodbSource extends DboSource {
 
 		if (is_object($return)) {
 			$_return = array();
-			while ($return->hasNext()) {
-				$mongodata = $return->getNext();
+			foreach ($return as $mongodata) {
 				if ($this->config['set_string_id'] && !empty($mongodata['_id']) && is_object($mongodata['_id'])) {
 					$mongodata['_id'] = $mongodata['_id']->__toString();
 				}
