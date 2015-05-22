@@ -1,6 +1,6 @@
 # mongoDB datasource for CakePHP
 
-[![Build Status](https://travis-ci.org/ichikaway/cakephp-mongodb.png?branch=cake2.2)](https://travis-ci.org/ichikaway/cakephp-mongodb)
+[![Build Status](https://travis-ci.org/imsamurai/cakephp-mongodb.png?branch=cake2.2)](https://travis-ci.org/imsamurai/cakephp-mongodb)
 
 ## Requirements
 PHP5, 
