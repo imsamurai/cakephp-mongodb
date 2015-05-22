@@ -480,9 +480,7 @@ class MongodbSource extends DboSource {
 			unset($data[$Model->primaryKey]);
 		}
 
-		if (!empty($data['_id'])) {
-			$this->_convertId($data['_id']);
-		}
+		$this->_convertId($data['_id']);
 
 		$this->_prepareLogQuery($Model); // just sets a timer
 		try{
@@ -1428,10 +1426,10 @@ class MongodbSource extends DboSource {
 		if (is_int($mixed) || ctype_digit($mixed)) {
 			return;
 		}
-		if (is_string($mixed)) {
-			if (strlen($mixed) !== 24) {
-				return;
-			}
+		if (is_string($mixed) || is_null($mixed)) {
+			//if (strlen($mixed) !== 24) {
+			//	return;
+			//}
 			$mixed = new MongoId($mixed);
 		}
 		if (is_array($mixed)) {
