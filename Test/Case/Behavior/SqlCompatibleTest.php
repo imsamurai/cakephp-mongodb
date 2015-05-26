@@ -248,6 +248,36 @@ class SqlCompatibleTest extends CakeTestCase {
 		);
 		$this->assertEqual($conditions, $this->Post->lastQuery['conditions']);
 	}
+	
+/**
+ * testBetween method
+ *
+ * @return void
+ * @access public
+ */
+	public function testBetween() {
+		$expected = array(5, 6, 7, 8);
+		$result = $this->Post->find('all', array(
+			'conditions' => array(
+				'created BETWEEN ? AND ?' => array(
+					'today +5 minutes',
+					'today +8 minutes',
+				)
+			),
+			'fields' => array('_id', 'title', 'number'),
+			'order' => array('number' => 'ASC')
+		));
+		$result = Hash::extract($result, '{n}.Post.title');
+		$this->assertEqual($expected, $result);
+
+		$conditions = array(
+			'created' => array(
+				'$gte' => new MongoDate(strtotime('today +5 minutes')),
+				'$lte' => new MongoDate(strtotime('today +8 minutes'))
+			)
+		);
+		$this->assertEqual($conditions, $this->Post->lastQuery['conditions']);
+	}
 
 
 	/**
@@ -376,6 +406,7 @@ class SqlCompatibleTest extends CakeTestCase {
 		for ($i = 1; $i <= 20; $i++) {
 			$data = array(
 				'title' => $i,
+				'created' => new MongoDate(strtotime("today +$i minutes"))
 			);
 			$saveData['Post'] = $data;
 			$this->Post->create();
