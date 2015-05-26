@@ -1422,18 +1422,19 @@ class MongodbSource extends DboSource {
  * @return void
  * @access protected
  */
-	protected function _convertId(&$mixed, $conditions = false) {
+protected function _convertId(&$mixed, $conditions = false) {
 		if (is_int($mixed) || ctype_digit($mixed)) {
 			return;
 		}
-		if (is_string($mixed) || is_null($mixed)) {
-			//if (strlen($mixed) !== 24) {
-			//	return;
-			//}
+		if (is_string($mixed)) {
+			if (strlen($mixed) !== 24) {
+				return;
+			}
 			$mixed = new MongoId($mixed);
-		}
-		if (is_array($mixed)) {
-			foreach($mixed as &$row) {
+		} else if (is_null($mixed)) {
+			$mixed = new MongoId();
+		} else if (is_array($mixed)) {
+			foreach ($mixed as &$row) {
 				$this->_convertId($row, false);
 			}
 			if (!empty($mixed[0]) && $conditions) {
@@ -1442,7 +1443,7 @@ class MongodbSource extends DboSource {
 		}
 	}
 
-/**
+	/**
  * stringify method
  *
  * Takes an array of args as an input and returns an array of json-encoded strings. Takes care of
