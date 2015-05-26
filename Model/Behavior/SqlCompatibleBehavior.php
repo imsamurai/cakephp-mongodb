@@ -131,7 +131,7 @@ class SqlCompatibleBehavior extends ModelBehavior {
 				$this->convertDates($row);
 			}
 		} elseif (is_a($results, 'MongoDate')) {
-			$results = date('Y-M-d h:i:s', $results->sec);
+			$results = date('Y-m-d h:i:s', $results->sec);
 		}
 	}
 
