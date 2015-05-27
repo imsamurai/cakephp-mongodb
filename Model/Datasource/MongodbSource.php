@@ -1093,11 +1093,11 @@ class MongodbSource extends DboSource {
 			if ($group) {
 				$return = Hash::extract($return, 'result.{n}.doc');
 			} else {
-				$return = (object)Hash::extract($return, 'result');
+				$return = Hash::extract($return, 'result');
 			}
 			
 			if ($this->fullDebug) {
-				$count = count($return);
+					$count = count($return);
 					$this->logQuery("db.{$Model->useTable}.aggregate( :opt )",
 					compact('opt', 'count')
 				);				
