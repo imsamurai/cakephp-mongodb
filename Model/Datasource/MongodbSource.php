@@ -1078,11 +1078,11 @@ class MongodbSource extends DboSource {
 					}
 				}
 			}
-			if ($limit) {
-				$opt[] = array('$limit' => $limit);
-			}
 			if ($offset) {
 				$opt[] = array('$skip' => $offset);
+			}
+			if ($limit) {
+				$opt[] = array('$limit' => $limit);
 			}
 			$return = $this->_db
 					->selectCollection($Model->table)->aggregate($opt);
