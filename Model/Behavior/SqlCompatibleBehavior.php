@@ -254,13 +254,14 @@ class SqlCompatibleBehavior extends ModelBehavior {
 				continue;
 			}
 			if (substr($uKey, -16) === ' BETWEEN ? AND ?' && is_array($value) && count($value) === 2) {
+				$_key = substr($key, 0, -16);
 				$_conditions = array(
-						substr($key, 0, -16).' >=' => new MongoDate(strtotime($value[0])),
-						substr($key, 0, -16).' <=' => new MongoDate(strtotime($value[1])),
+						$_key.' >=' => new MongoDate(strtotime($value[0])),
+						$_key.' <=' => new MongoDate(strtotime($value[1])),
 				);
 				$this->_translateConditions($Model, $_conditions);
 				unset($conditions[$key]);
-				$conditions = $_conditions;
+				$conditions[$_key] = $_conditions[$_key];
 				$return = true;
 				continue;
 			}
