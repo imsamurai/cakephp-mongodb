@@ -147,6 +147,7 @@ class SqlCompatibleBehavior extends ModelBehavior {
  */
 	protected function _translateOrders(Model &$Model, &$orders) {
 		if(!empty($orders[0])) {
+			$orders[0] = (array)$orders[0];
 			foreach($orders[0] as $key => $val) {
 				if(preg_match('/^(.+) (ASC|DESC)$/i', $val, $match)) {
 					$orders[0][$match[1]] = $match[2];
