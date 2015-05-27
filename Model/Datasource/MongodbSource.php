@@ -996,8 +996,16 @@ class MongodbSource extends DboSource {
 			$order = array_shift($order);
 		}
 		$this->_stripAlias($conditions, $Model->alias);
-		$this->_stripAlias($fields, $Model->alias, false, 'value');
+		
+		if ($fields === $group && $fields === "{$Model->alias}.{$Model->primaryKey}") {
+			$fields = $group = array();
+		}
+		$fields = is_string($fields) ? (array)$fields : (is_numeric(implode('', array_keys($fields))) ? $fields : array_keys($fields));
+		$fields = array_fill_keys($fields, true);
+		$this->_stripAlias($fields, $Model->alias, false, 'both');
 		$this->_stripAlias($order, $Model->alias, false, 'both');
+		$group = is_string($group) ? (array)$group : (is_numeric(implode('', array_keys($group))) ? $group : array_keys($group));
+		$this->_stripAlias($group, $Model->alias, false, 'both');
 
 		if(!empty($conditions['id']) && empty($conditions['_id'])) {
 			$conditions['_id'] = $conditions['id'];
@@ -1008,7 +1016,6 @@ class MongodbSource extends DboSource {
 			$this->_convertId($conditions['_id']);
 		}
 
-		$fields = (is_array($fields)) ? $fields : array($fields => 1);
 		if ($conditions === true) {
 			$conditions = array();
 		} elseif (!is_array($conditions)) {
@@ -1052,18 +1059,48 @@ class MongodbSource extends DboSource {
 				}
 				return array(array($Model->alias => array('count' => $count)));
 			}
-
+			
+			$opt = array();
+			if ($order) {
+				$opt[] = array('$sort' => $order);
+			}
+			if ($fields) {
+				$opt[] = array('$project' => $fields);
+			}
+			if ($conditions) {
+				$opt[] = array('$match' => $conditions);
+			}
+			if ($group) {
+				$opt[] = array('$group' => array('_id' => '$'.$group[0], 'doc' => array('$first' => '$$ROOT')));
+				if (count($group) > 1) {
+					for($groupNum = 1; $groupNum < count($group); $groupNum++) {
+						$opt[] = array('$group' => array('_id' => '$doc.'.$group[$groupNum], 'doc' => array('$first' => '$doc')));
+					}
+				}
+			}
+			if ($limit) {
+				$opt[] = array('$limit' => $limit);
+			}
+			if ($offset) {
+				$opt[] = array('$skip' => $offset);
+			}
 			$return = $this->_db
-				->selectCollection($Model->table)
-				->find($conditions, $fields)
-				->sort($order)
-				->limit($limit)
-				->skip($offset);
+					->selectCollection($Model->table)->aggregate($opt);
+			if (!$return['ok']) {
+				throw new RuntimeException(__('Mongo read error!'));
+			}
+			
+			if ($group) {
+				$return = Hash::extract($return, 'result.{n}.doc');
+			} else {
+				$return = (object)Hash::extract($return, 'result');
+			}
+			
 			if ($this->fullDebug) {
-				$count = $return->count(true);
-				$this->logQuery("db.{$Model->useTable}.find( :conditions, :fields ).sort( :order ).limit( :limit ).skip( :offset )",
-					compact('conditions', 'fields', 'order', 'limit', 'offset', 'count')
-				);
+				$count = count($return);
+					$this->logQuery("db.{$Model->useTable}.aggregate( :opt )",
+					compact('opt', 'count')
+				);				
 			}
 		} else {
 			$options = array_filter(array(
@@ -1098,7 +1135,7 @@ class MongodbSource extends DboSource {
 			return array(array($Model->alias => array('count' => $return->count())));
 		}
 
-		if (is_object($return)) {
+		if (is_object($return) || is_array($return)) {
 			$_return = array();
 			foreach ($return as $mongodata) {
 				if ($this->config['set_string_id'] && !empty($mongodata['_id']) && is_object($mongodata['_id'])) {

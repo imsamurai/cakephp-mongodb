@@ -418,6 +418,52 @@ class MongodbSourceTest extends CakeTestCase {
 		$this->assertEqual($data['body'], $resultData['body']);
 		$this->assertEqual($data['text'], $resultData['text']);
 	}
+	
+/**
+ * Tests find group
+ *
+ * @return void
+ * @access public
+ */
+	public function testFindGroup() {
+		$data = array(
+			array(
+				'title' => 'BBB',
+				'body' => 'aaaa',
+				'text' => '1'
+			),
+			array(
+				'title' => 'BBB',
+				'body' => 'aaaa1',
+				'text' => '2'
+			),
+			array(
+				'title' => 'AAA',
+				'body' => 'aaaa',
+				'text' => '3'
+			),
+			array(
+				'title' => 'AAA',
+				'body' => 'aaaa',
+				'text' => '4'
+			),
+			array(
+				'title' => 'CCC',
+				'body' => 'aaaa1',
+				'text' => '5'
+			)
+		);
+		foreach ($data as $set) {
+			$this->insertData($set);
+		}
+		$result = $this->Post->find('all', array(
+			'group' => array('title', 'body'),
+			'order' => array('title' => 'ASC', 'body' => 'ASC', 'text'=> 'DESC')
+		));
+		$this->assertEqual(2, count($result));
+		$this->assertSame('BBB', $result[0]['Post']['title']);
+		$this->assertSame('CCC', $result[1]['Post']['title']);
+	}
 
 /**
  * Tests findBy* method
@@ -1531,7 +1577,6 @@ class MongodbSourceTest extends CakeTestCase {
 
 		$count = $this->MongoArticle->find('count');
 		$this->assertEqual($count, 4);
-
 		$this->MongoArticle->deleteAll(array('cat' => 2), $cascade);
 
 		$count = $this->MongoArticle->find('count');

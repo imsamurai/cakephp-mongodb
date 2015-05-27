@@ -264,7 +264,7 @@ class SqlCompatibleTest extends CakeTestCase {
 					'today +8 minutes',
 				)
 			),
-			'fields' => array('_id', 'title', 'number'),
+			'fields' => array('_id', 'title', 'number', 'created'),
 			'order' => array('number' => 'ASC')
 		));
 		$result = Hash::extract($result, '{n}.Post.title');
