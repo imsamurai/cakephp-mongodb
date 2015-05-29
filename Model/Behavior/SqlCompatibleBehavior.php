@@ -67,6 +67,8 @@ class SqlCompatibleBehavior extends ModelBehavior {
 			'NOT IN' => '$nin'
 		)
 	);
+	
+	protected $_lastQuery = false;
 
 /**
  * setup method
@@ -81,6 +83,18 @@ class SqlCompatibleBehavior extends ModelBehavior {
 	public function setup(Model $Model, $config = array()) {
 		$this->settings[$Model->alias] = array_merge($this->_defaultSettings, $config);
 	}
+	
+	public function beforeSave(Model $Model, $options = array()) {
+		parent::beforeSave($Model, $options);
+		foreach ($Model->schema() as $field => $params) {
+			if ($params['type']!=='datetime' || !is_string($Model->data[$Model->alias][$field])) {
+				continue;
+			}
+			$value = explode('.', $Model->data[$Model->alias][$field], 2);
+			$Model->data[$Model->alias][$field] = new MongoDate(is_numeric($value[0]) ? (int)$value[0] : strtotime($value[0]), isset($value[1]) ? (int)$value[1] : 0);
+		}
+		return true;
+	}
 
 /**
  * If requested, convert dates from MongoDate objects to standard date strings
@@ -93,8 +107,9 @@ class SqlCompatibleBehavior extends ModelBehavior {
  */
 	public function afterFind(Model $Model, $results, $primary = false) {
 		if ($this->settings[$Model->alias]['convertDates']) {
-			$this->convertDates($results);
+			$this->convertDates($results, (bool)Hash::get($this->_lastQuery, 'useUsec'));
 		}
+		$this->_lastQuery = array();
 		return $results;
 	}
 
@@ -109,6 +124,7 @@ class SqlCompatibleBehavior extends ModelBehavior {
  * @access public
  */
 	public function beforeFind(Model $Model, $query) {
+		$this->_lastQuery = $query;
 		if (is_array($query['order'])) {
 			$this->_translateOrders($Model, $query['order']);
 		}
@@ -125,13 +141,13 @@ class SqlCompatibleBehavior extends ModelBehavior {
  * @return void
  * @access protected
  */
-	protected function convertDates(&$results) {
+	protected function convertDates(&$results, $useMicroseconds) {
 		if (is_array($results)) {
 			foreach($results as &$row) {
-				$this->convertDates($row);
+				$this->convertDates($row, $useMicroseconds);
 			}
 		} elseif (is_a($results, 'MongoDate')) {
-			$results = date('Y-m-d h:i:s', $results->sec);
+			$results = date('Y-m-d h:i:s', $results->sec) .($useMicroseconds ? '.'.$results->usec : '');
 		}
 	}
 
@@ -147,6 +163,7 @@ class SqlCompatibleBehavior extends ModelBehavior {
  */
 	protected function _translateOrders(Model &$Model, &$orders) {
 		if(!empty($orders[0])) {
+			$orders[0] = (array)$orders[0];
 			foreach($orders[0] as $key => $val) {
 				if(preg_match('/^(.+) (ASC|DESC)$/i', $val, $match)) {
 					$orders[0][$match[1]] = $match[2];
@@ -254,13 +271,14 @@ class SqlCompatibleBehavior extends ModelBehavior {
 				continue;
 			}
 			if (substr($uKey, -16) === ' BETWEEN ? AND ?' && is_array($value) && count($value) === 2) {
+				$_key = substr($key, 0, -16);
 				$_conditions = array(
-						substr($key, 0, -16).' >=' => new MongoDate(strtotime($value[0])),
-						substr($key, 0, -16).' <=' => new MongoDate(strtotime($value[1])),
+						$_key.' >=' => new MongoDate(strtotime($value[0])),
+						$_key.' <=' => new MongoDate(strtotime($value[1])),
 				);
 				$this->_translateConditions($Model, $_conditions);
 				unset($conditions[$key]);
-				$conditions = $_conditions;
+				$conditions[$_key] = $_conditions[$_key];
 				$return = true;
 				continue;
 			}
