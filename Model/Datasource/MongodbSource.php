@@ -1082,7 +1082,9 @@ class MongodbSource extends DboSource {
 			if (!empty($groupMongo) && $fields) {
 				$opt[] = array('$project' => $fields);
 			}
-			
+			if ($order) {
+				$opt[] = array('$sort' => $order);
+			}
 			if ($offset) {
 				$opt[] = array('$skip' => $offset);
 			}
