@@ -91,7 +91,7 @@ class SqlCompatibleBehavior extends ModelBehavior {
 				continue;
 			}
 			$value = explode('.', $Model->data[$Model->alias][$field], 2);
-			$Model->data[$Model->alias][$field] = new MongoDate(is_numeric($value[0]) ? (int)$value[0] : strtotime($value[0]), isset($value[1]) ? (int)$value[1] : 0);
+			$Model->data[$Model->alias][$field] = new MongoDate(is_numeric($value[0]) ? (int)$value[0] : strtotime($value[0]), isset($value[1]) ? (int)str_pad($value[1], 6, 0) : 0);
 		}
 		return true;
 	}
