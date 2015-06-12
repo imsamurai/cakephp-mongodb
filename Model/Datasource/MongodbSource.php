@@ -988,7 +988,7 @@ class MongodbSource extends DboSource {
 		if (!$this->isConnected()) {
 			return false;
 		}
-
+		$query = $this->_scrubQueryData($query);
 		$this->_setEmptyValues($query);
 		extract($query);
 
@@ -1045,7 +1045,7 @@ class MongodbSource extends DboSource {
 			}
 		}
 
-		if (empty($offset) && $page && $limit) {
+		if (empty($offset) && !empty($page) && $limit) {
 			$offset = ($page - 1) * $limit;
 		}
 
