@@ -102,6 +102,7 @@ class MongodbSource extends DboSource {
 		'login'		=> '',
 		'password'	=> '',
 		'replicaset'	=> '',
+		'mongo' => array()
 	);
 
 /**
@@ -191,7 +192,7 @@ class MongodbSource extends DboSource {
 			if (isset($this->config['replicaset']) && count($this->config['replicaset']) === 2) {
 				$this->connection = new MongoClient($this->config['replicaset']['host'], $this->config['replicaset']['options']);
 			} else if ($this->_driverVersion >= '1.3.0') {
-				$this->connection = new MongoClient($host);
+				$this->connection = new MongoClient($host, $this->config['mongo']);
 			} else if ($this->_driverVersion >= '1.2.0') {
 				$this->connection = new MongoClient($host, array("persist" => $this->config['persistent']));
 			} else {
