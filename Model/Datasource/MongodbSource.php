@@ -1061,9 +1061,9 @@ class MongodbSource extends DboSource {
 					$this->logQuery("db.{$Model->useTable}.count( :conditions )", compact('conditions', 'count')
 					);
 				}
-				return array(
+				return array(array(
 					$Model->alias => compact('count')
-				);
+				));
 			}
 
 			$opt = array();
