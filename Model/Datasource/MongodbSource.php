@@ -1055,10 +1055,17 @@ class MongodbSource extends DboSource {
 		$this->_prepareLogQuery($Model); // just sets a timer
 		if (empty($modify)) {
 			if ($Model->findQueryType === 'count' && $fields == array('count' => true)) {
-				$groupMongo = isset($groupMongo) ? $groupMongo : array();
-				$groupMongo[] = array('$group' => array('_id' => 'null', 'count' => array('$sum' => 1)));
+				$count = $this->_db
+								->selectCollection($Model->table)->count($conditions);
+				if ($this->fullDebug) {
+					$this->logQuery("db.{$Model->useTable}.count( :conditions )", compact('conditions', 'count')
+					);
+				}
+				return array(
+					$Model->alias => compact('count')
+				);
 			}
-			
+
 			$opt = array();
 			if ($order) {
 				$opt[] = array('$sort' => $order);
@@ -1070,10 +1077,10 @@ class MongodbSource extends DboSource {
 				$opt[] = array('$match' => $conditions);
 			}
 			if ($group) {
-				$opt[] = array('$group' => array('_id' => '$'.$group[0], 'doc' => array('$first' => '$$ROOT')));
+				$opt[] = array('$group' => array('_id' => '$' . $group[0], 'doc' => array('$first' => '$$ROOT')));
 				if (count($group) > 1) {
-					for($groupNum = 1; $groupNum < count($group); $groupNum++) {
-						$opt[] = array('$group' => array('_id' => '$doc.'.$group[$groupNum], 'doc' => array('$first' => '$doc')));
+					for ($groupNum = 1; $groupNum < count($group); $groupNum++) {
+						$opt[] = array('$group' => array('_id' => '$doc.' . $group[$groupNum], 'doc' => array('$first' => '$doc')));
 					}
 				}
 			}
@@ -1093,23 +1100,22 @@ class MongodbSource extends DboSource {
 				$opt[] = array('$limit' => $limit);
 			}
 			$return = $this->_db
-					->selectCollection($Model->table)->aggregate($opt);
+							->selectCollection($Model->table)->aggregate($opt);
 			if (!$return['ok']) {
 				throw new RuntimeException(__('Mongo read error!'));
 			}
-			
-			
+
+
 			if ($group) {
 				$return = Hash::extract($return, 'result.{n}.doc');
 			} else {
 				$return = Hash::extract($return, 'result');
 			}
-			
+
 			if ($this->fullDebug) {
-					$count = count($return);
-					$this->logQuery("db.{$Model->useTable}.aggregate( :opt )",
-					compact('opt', 'count')
-				);				
+				$count = count($return);
+				$this->logQuery("db.{$Model->useTable}.aggregate( :opt )", compact('opt', 'count')
+				);
 			}
 		} else {
 			$options = array_filter(array(
@@ -1123,7 +1129,7 @@ class MongodbSource extends DboSource {
 				'upsert' => !empty($upsert)
 			));
 			$return = $this->_db
-				->command($options);
+					->command($options);
 			if ($this->fullDebug) {
 				if ($return['ok']) {
 					$count = 1;
@@ -1134,8 +1140,7 @@ class MongodbSource extends DboSource {
 				} else {
 					$count = 0;
 				}
-				$this->logQuery("db.runCommand( :options )",
-					array('options' => array_filter($options), 'count' => $count)
+				$this->logQuery("db.runCommand( :options )", array('options' => array_filter($options), 'count' => $count)
 				);
 			}
 		}
