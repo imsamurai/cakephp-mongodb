@@ -1067,8 +1067,10 @@ class MongodbSource extends DboSource {
 			}
 
 			$opt = array();
-			if ($order) {
-				$opt[] = array('$sort' => $order);
+			$sortBefore = array_diff_key($order, $Model->virtualFields);
+			$sortAfter = array_intersect_key($order, $Model->virtualFields);
+			if ($sortBefore) {
+				$opt[] = array('$sort' => $sortBefore);
 			}
 			if (empty($groupMongo) && $fields) {
 				$opt[] = array('$project' => $fields);
@@ -1090,8 +1092,8 @@ class MongodbSource extends DboSource {
 			if (!empty($groupMongo) && $fields) {
 				$opt[] = array('$project' => $fields);
 			}
-			if ($order && ($group || !empty($groupMongo))) {
-				$opt[] = array('$sort' => $order);
+			if ($sortAfter) {
+				$opt[] = array('$sort' => $sortAfter);
 			}
 			if ($offset) {
 				$opt[] = array('$skip' => $offset);
